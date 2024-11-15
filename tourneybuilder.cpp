@@ -1,22 +1,101 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <cstdlib>
+#include <cmath>
+#include <limits>
 using namespace std;
-void swap_teams(string str[],int j, int smallest){  //swap function, miss kra
+int score_validation(int n);
+void swiss(int rounds,string team_names[],int score[],int teams,string k_teams[],int half_teams);
+void swap_teams(string str[],int j, int smallest);
+void swap_score(int score[],int j, int smallest);
+void swiss_sort_score(int score[], string str[],int teams);
+int power_of_two(int n);
+void tie_breaker(string team_names[],int score[],int teams);
+int main(){
+    int teams;
+    int r=0; 
+    do{
+    cout<<"How many teams do you need {powers of 2}?";
+    cin>>teams;
+    r=power_of_two(teams);
+    }while(r==0);
+    const int CAPACITY=100;
+    string str[teams];
+    int score[teams]={0}; 
+    string team_no;
+    for(int i=0;i<teams;i++){
+        team_no=to_string(i+1);
+        str[i]="Team " + team_no;
+    }
+    int rounds=log2(teams);
+    int half_teams=teams/2;
+    string k_teams[half_teams];
+    swiss(rounds,str,score,teams,k_teams,half_teams);
+    return 0;
+}
+int score_validation(int n){
+    while( n>2 || n<1){
+        cout<<"Please only type 1 for team 1 or 2 for team 2, no other number or letter"<<endl;
+        cin>>n;
+    }
+    return n;
+}
+void swiss(int rounds,string team_names[],int score[],int teams,string k_teams[],int half_teams){
+    int a=1;
+    for(int round=0;round<rounds;round++){
+        int b=1;
+        cout<<"Round "<<a<<endl;
+        for(int i=0;i<teams;i+=2){
+            cout<<"Match "<<b<<endl;
+            cout<<team_names[i]<<" (team 1) vs "<<team_names[i+1]<<" (team 2)"<<endl;;
+            cout<<"who is gonna win? (1 or 2)"<<endl;
+            int victory=0;
+            cin>>victory;
+            victory=score_validation(victory);
+            if(victory==1){
+                score[i]+=1;
+            }
+            else{
+                score[i+1]+=1;
+            }
+            b++;
+        }
+        swiss_sort_score(score,team_names,teams);
+        cout<<"standings after Round "<<a<<":"<<endl;
+        for(int i=0;i<teams;i++){
+            cout<<setw(5)<<team_names[i]<<setw(5)<<"-score: "<<setw(5)<<score[i]<<endl;
+        }
+        if(round!=rounds-1)
+        {cout<<"would you like to continue? (press any letter to resume)"<<endl;
+        char x;
+        cin>>x;}
+        a++;
+    }
+    cout<<"Teams going to the knockout stage: "<<endl;
+    k_teams[half_teams];
+    for(int i=teams-1;i>=half_teams;i--){
+        cout<<team_names[i]<<endl;
+        k_teams[i];
+    }
+
+    
+}
+void swap_teams(string str[],int j, int smallest){  
     string temp;
     temp=str[j];
     str[j]=str[smallest];
     str[smallest]=temp;
 }
-void swap_score(int score[],int j, int smallest){ //swap func again
+void swap_score(int score[],int j, int smallest){ 
     int temp;
     temp=score[j];
     score[j]=score[smallest];
     score[smallest]=temp;
 }
-void sort_score(int score[], string str[],int teams){ //sort func, abhi tak mainly yehi likha
+void swiss_sort_score(int score[], string str[],int teams){ 
     for(int j=0;j<teams-1;j++){
-        int smallest=score[j];
+        int smallest=j;
         for(int i=j;i<teams;i++){
             if(score[smallest]>score[i]){
                 smallest=i;
@@ -26,48 +105,27 @@ void sort_score(int score[], string str[],int teams){ //sort func, abhi tak main
         swap_teams(str,j,smallest);
     }
 }
-int power_of_two(int n){  //input validation
-    if((n!=0 && n!=1 && n&(n-1))==0){
+int power_of_two(int n){  //no of teams entered validation
+    if(n!=1 && n>1&& (n&(n-1))==0){
         return 1;
     }
     else{
         return 0;
     }
 }
-
-int main(){
-    int teams;
-    int r=0; // do while loop chlanay ke liye
-    do{
-    cout<<"How many teams do you need {powers of 2}?";
-    cin>>teams;
-    r=power_of_two(teams);
-    }while(r==0);
-    const int CAPACITY=100; //just a rlly big num, I hope there arent 128 teams loll
-    string str[CAPACITY];
-    int score[teams]={0}; //start me score 0 rakh rha
-    for(int i=0;i<teams;i++){
-        string skibidi=to_string(i+1);
-        str[i]="Team " + skibidi;  //teams ko naam de rha hu
+void tie_breaker(string team_names[],int score[],int teams){
+    cout<<"Tie between 2 teams detected"<<endl;
+    cout<<"Playing a tie breaker game"<<endl;
+    cout<<"LAST MATCH: "<<endl;
+    cout<<team_names[teams-2]<<" vs "<<team_names[teams-1]<<endl;
+    cout<<"Who wins this game? (1 for team 1, 2 for team 2) "<<endl;
+    int victory=0;
+    cin>>victory;
+    victory=score_validation(victory);
+    if(victory==1){
+        cout<<"The Final winner is: "<<team_names[teams-2];
     }
-    for(int i=0;i<teams;i++){ //the following lines just check the code for now
-    // random score daal kar dekh raha hu if sorting is working
-    //will do swiss tmrw or thursday
-        cout<<"score pls"<<endl;
-        cin>>score[i];
-    }
-    sort_score(score,str,teams);
-    for(int i=0;i<teams;i++){
-        cout<<str[i]<<" "<<score[i]<<endl;
-    }
-
-
-    
-
-
-
-
-
-
-    return 0;
+    else{
+        cout<<"The Final winner is: "<<team_names[teams-1];
+    } 
 }
