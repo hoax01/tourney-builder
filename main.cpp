@@ -1,9 +1,13 @@
 #include <SFML/Graphics.hpp>  // For SFML graphics (window, rendering, text, etc.)
 #include <iostream>            // For console input/output (cin, cout)
 #include <cstring> 
+#include <iomanip>
+#include <cmath>
+
 
 using namespace std;
 using namespace sf;
+void score_sort(int score[],string str[],int num);
 // Helper function to check if a number is a power of 2
 bool isPowerOfTwo(int num) {
     return (num > 1) && ((num & (num - 1)) == 0);
@@ -37,10 +41,12 @@ int main() {
     char tournamentName[100] = "";
     char sportType[20] = "";
     char formatType[20] = "";
-    int numTeams = 0;
+    int numTeams=0;
     char teamNames[16][100] = {};
     const int MAX_TEAMS = 16;
     char errorMessage[200] = "";
+    int score[16]={0};
+    string teams[16];
 
     // Declare error handling variables globally
     bool showError = false;  // Flag to control error display
@@ -103,7 +109,8 @@ int main() {
                         numTeams = 0; // Reset invalid input
                     }
                 }
-            } else if (step == 4) {
+            }
+            else if (step == 4) {
                 // Team name entry with validation
                 if (event.type == Event::TextEntered) {
                     // Handle backspace
@@ -150,6 +157,153 @@ int main() {
                     }
                 }
             }
+            else if (step == 5) {
+        if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
+         // Debugging output
+        step = 6;  // Transition to Step 6
+        }
+    }
+           else if (step == 6) {
+    static int currentMatch = 0;  // Track the current match within the round
+    static int currentRound = 0;  // Track the current round
+    static int rounds = log2(numTeams);  // Total number of rounds   // Team scores     // Team names
+    static bool initialized = false;
+
+    // Initialize teams and scores (only once)
+    if (!initialized) {
+        for (int i = 0; i < numTeams; i++) {
+            teams[i] = string(teamNames[i]);
+        }
+        initialized = true;
+    }
+
+    // Create a new window for each match
+    RenderWindow matchWindow(VideoMode(800, 600), "Match: " + teams[currentMatch * 2] + " vs " + teams[currentMatch * 2 + 1]);
+
+    // Handle event for match window (Clicking Team 1 or Team 2)
+    while (matchWindow.isOpen()) {
+        Event event;
+        while (matchWindow.pollEvent(event)) {
+            if (event.type == Event::Closed) {
+                matchWindow.close();
+            }
+
+            // Check for button clicks (Team 1 or Team 2)
+            if (event.type == Event::MouseButtonPressed) {
+                Vector2i mousePos = Mouse::getPosition(matchWindow);
+
+                // Team 1 button click
+                if (mousePos.x > 50 && mousePos.x < 200 && mousePos.y > 150 && mousePos.y < 200) {
+                    score[currentMatch * 2] += 1;  // Team 1 wins
+                    currentMatch++;
+                    matchWindow.close();  // Close the match window
+                }
+                // Team 2 button click
+                else if (mousePos.x > 250 && mousePos.x < 400 && mousePos.y > 150 && mousePos.y < 200) {
+                    score[currentMatch * 2 + 1] += 1;  // Team 2 wins
+                    currentMatch++;
+                    matchWindow.close();  // Close the match window
+                }
+            }
+        }
+
+        // Drawing logic for each match window
+        matchWindow.clear();
+
+        // Display the match-up
+        string matchInfo = teams[currentMatch * 2] + " vs " + teams[currentMatch * 2 + 1];
+        Text matchText(matchInfo, font, 30);
+        matchText.setPosition(250, 100);
+        matchWindow.draw(matchText);
+
+        // Create and draw Team 1 button
+        RectangleShape team1Button(Vector2f(150, 50));
+        team1Button.setFillColor(Color::Green);
+        team1Button.setPosition(50, 150);
+        matchWindow.draw(team1Button);
+        Text team1Text(teams[currentMatch * 2], font, 20);
+        team1Text.setPosition(75, 160);
+        matchWindow.draw(team1Text);
+
+        // Create and draw Team 2 button
+        RectangleShape team2Button(Vector2f(150, 50));
+        team2Button.setFillColor(Color::Red);
+        team2Button.setPosition(250, 150);
+        matchWindow.draw(team2Button);
+        Text team2Text(teams[currentMatch * 2 + 1], font, 20);
+        team2Text.setPosition(275, 160);
+        matchWindow.draw(team2Text);
+
+        matchWindow.display();
+    }
+
+    // After the match window closes, check if all matches in the round are completed
+    if (currentMatch >= numTeams / 2) {
+        currentMatch = 0;  // Reset match count for next round
+        currentRound++;    // Move to the next round
+
+        // Sort teams by score for the next round
+        score_sort(score, teams, numTeams);
+
+        // If all rounds are completed, move to the next step
+        if (currentRound >= rounds) {
+            step++;  // Proceed to the next step
+        }
+    }
+}
+        else if (step == 7) {
+    // Find the team with the highest score
+    int winnerIndex = 0;
+    for (int i = 1; i < numTeams; i++) {
+        if (score[i] > score[winnerIndex]) {
+            winnerIndex = i;  // Update winner if a higher score is found
+        }
+    }
+    cout << "Winner Index: " << winnerIndex << ", Winner Team: " << teams[winnerIndex] 
+     << ", Score: " << score[winnerIndex] << endl;
+
+
+    // Create a new window to display the winner
+    RenderWindow winnerWindow(VideoMode(800, 600), "Tournament Winner");
+
+    // Event handling for winner window
+    while (winnerWindow.isOpen()) {
+        Event event;
+        while (winnerWindow.pollEvent(event)) {
+            if (event.type == Event::Closed)
+                winnerWindow.close();
+        }
+
+        // Drawing the winner text
+        winnerWindow.clear();
+
+        // Display the winner's name and score
+        string winnerMessage = "Winner: " + teams[winnerIndex];
+        winnerMessage += "\nScore: " + to_string(score[winnerIndex]);  // Correctly append the score
+
+        // Create text to display the winner message
+        Text winnerText(winnerMessage, font, 30);
+        winnerText.setPosition(100, 200);  // Adjust position as needed
+        winnerWindow.draw(winnerText);
+
+        // Display the winner window
+        winnerWindow.display();
+    }
+
+    // Once winner window is closed, end the tournament (or move to next step)
+    step++;  // Proceed to the next step (or exit)
+}
+
+
+
+
+
+
+
+
+
+
+
 
         }
 
@@ -208,23 +362,101 @@ int main() {
 
         // Wait for the user to press Enter to continue to the next step
         if (event.type == Event::KeyPressed && event.key.code == Keyboard::Enter) {
-            step++; // Proceed to the next step after displaying the summary
+            step=6; // Proceed to the next step after displaying the summary
         }
+    }else if (step == 6) {
+    static int currentMatch = 0;    // Track the current match within the round
+    static int currentRound = 0;    // Track the current round
+    static int score[16] = {0};     // Team scores
+    static string teams[16];        // Team names
+    static bool initialized = false;
+
+    // Initialize teams and scores (only once)
+    if (!initialized) {
+        for (int i = 0; i < numTeams; i++) {
+            teams[i] = string(teamNames[i]);
+        }
+        initialized = true;
     }
+
+    // Display the current round and matchup
+    string roundInfo = "Round " + to_string(currentRound + 1) + "\n";
+    if (currentMatch * 2 < numTeams) {
+        roundInfo += teams[currentMatch * 2] + " vs " + teams[currentMatch * 2 + 1] + "\n";
+    } else {
+        roundInfo += "Waiting for next round...\n";
+    }
+    Text roundText(roundInfo, font, 20);
+    roundText.setPosition(50, 50);
+    window.draw(roundText);
+
+    // Create and draw Team 1 button with dynamic text
+    if (currentMatch * 2 < numTeams) {
+        RectangleShape team1Button(Vector2f(150, 50));
+        team1Button.setFillColor(Color::Green);
+        team1Button.setPosition(50, 150);
+        Text team1Text(teams[currentMatch * 2], font, 20);
+        team1Text.setPosition(75, 160);
+        window.draw(team1Button);
+        window.draw(team1Text);
+
+        // Create and draw Team 2 button with dynamic text
+        RectangleShape team2Button(Vector2f(150, 50));
+        team2Button.setFillColor(Color::Red);
+        team2Button.setPosition(250, 150);
+        Text team2Text(teams[currentMatch * 2 + 1], font, 20);
+        team2Text.setPosition(275, 160);
+        window.draw(team2Button);
+        window.draw(team2Text);
+    }
+
+    // Display standings after the round (if matches are done)
+    if (currentMatch == 0 && currentRound > 0) {
+        string standings = "Standings after Round " + to_string(currentRound) + ":\n";
+        for (int i = 0; i < numTeams; i++) {
+            standings += to_string(i + 1) + ". " + teams[i] + " - Score: " + to_string(score[i]) + "\n";
+        }
+
+        Text standingsText(standings, font, 20);
+        standingsText.setPosition(50, 250);
+        window.draw(standingsText);
+    }
+}
+
+
+
+    
+
+
+
+
+    
 
         window.draw(prompt);
         window.display();
     }
 
-    // Display collected data
-    cout << "Tournament Name: " << tournamentName << endl;
-    cout << "Sport Type: " << sportType << endl;
-    cout << "Format Type: " << formatType << endl;
-    cout << "Number of Teams: " << numTeams << endl;
-    cout << "Team Names:\n";
-    for (int i = 0; i < numTeams; i++) {
-        cout << i + 1 << ". " << teamNames[i] << endl;
-    }
-
     return 0;
+}
+
+
+
+
+void score_sort(int score[],string str[],int num){
+    float temp_num = 0;
+    string temp_str;
+    for (int x = 0; x<num;x++){
+        for (int y = 0; y<num-1;y++){
+            if (score[y] <= score[y+1]){
+                    temp_num = score[y];
+                    temp_str = str[y];
+
+                    score[y] = score[y+1];
+                    str[y] = str[y+1];
+
+                    score[y+1] = temp_num;
+                    str[y+1] = temp_str;
+                }
+        }
+    }
 }
